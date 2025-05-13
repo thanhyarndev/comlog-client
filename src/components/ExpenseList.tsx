@@ -1,5 +1,6 @@
-// src/components/ExpenseList.tsx
 'use client';
+import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,72 +11,96 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { format } from 'date-fns';
 import { Check, Trash2, X } from 'lucide-react';
-import type { Expense } from '../app/data/mockData';
+import {
+  getAllExpenses,
+  toggleExpenseCollected,
+  deleteExpense,
+} from '@/hooks/api/expense';
+import type { Expense } from '@/types/expense';
 
-interface Props {
-  data: Expense[];
-  onTogglePaid: (id: string) => void;
-  onRemove: (id: string) => void;
-}
+export default function ExpenseList() {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function ExpenseList({ data, onTogglePaid, onRemove }: Props) {
+  const loadExpenses = async () => {
+    try {
+      const res = await getAllExpenses();
+      setExpenses(res);
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu chi phí:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadExpenses();
+  }, []);
+
+  const handleTogglePaid = async (id: string) => {
+    await toggleExpenseCollected(id);
+    loadExpenses();
+  };
+
+  const handleRemove = async (id: string) => {
+    await deleteExpense(id);
+    loadExpenses();
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Ngày</TableHead>
-            <TableHead>Nhân viên</TableHead>
+            <TableHead>Tiêu đề</TableHead>
             <TableHead>Số tiền</TableHead>
-            <TableHead>Mô tả</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead className="text-right">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map(expense => {
-            const total = expense.employees.reduce((sum, e) => sum + e.amount, 0);
-            const empNames = expense.employees.map(e => e.name).join(', ');
-            return (
-              <TableRow key={expense.id}>
-                <TableCell>{format(new Date(expense.date), 'dd/MM/yyyy')}</TableCell>
-                <TableCell>{empNames}</TableCell>
-                <TableCell>{total.toLocaleString()} ₫</TableCell>
-                <TableCell>{expense.description || '-'}</TableCell>
-                <TableCell>
-                  <Badge variant={expense.isCollected ? 'default' : 'outline'}>
-                    {expense.isCollected ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => onTogglePaid(expense.id)}
-                      title={expense.isCollected ? 'Đánh dấu chưa thanh toán' : 'Đánh dấu đã thanh toán'}
-                    >
-                      {expense.isCollected ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => onRemove(expense.id)}
-                      className="text-red-500"
-                      title="Xóa"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-          {data.length === 0 && (
+          {expenses.map((expense) => (
+            <TableRow key={expense._id}>
+              <TableCell>{format(new Date(expense.date), 'dd/MM/yyyy')}</TableCell>
+              <TableCell>{expense.title}</TableCell>
+              <TableCell>{expense.totalAmount.toLocaleString()} ₫</TableCell>
+              <TableCell>
+                <Badge variant={expense.totalReceived >= expense.totalAmount ? 'default' : 'outline'}>
+                  {expense.totalReceived >= expense.totalAmount ? 'Đã thu đủ' : 'Chưa thu đủ'}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleTogglePaid(expense._id)}
+                    title="Chuyển trạng thái đã/ chưa thu đủ"
+                  >
+                    {expense.totalReceived >= expense.totalAmount ? (
+                      <X className="h-4 w-4" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleRemove(expense._id)}
+                    className="text-red-500"
+                    title="Xoá"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+          {!loading && expenses.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                 Chưa có chi phí nào được thêm vào
               </TableCell>
             </TableRow>

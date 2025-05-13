@@ -2,18 +2,17 @@
 import React, { useEffect, useState } from 'react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { Calendar as CalendarIcon, DollarSign, RefreshCw, Users, Plus } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ExpenseForm from '@/components/ExpensesForm';
 import ExpenseList from '@/components/ExpenseList';
-import type { Expense, Employee } from '../data/mockData';
-import { employees as mockEmployees } from '../data/mockData';
 import EmployeesPage from '../employees/page';
 
-const LOCAL_KEY = 'expenses_data';
+import { createExpense, createExpenseTransaction, getAllExpenses, toggleExpenseCollected, deleteExpense } from '@/hooks/api/expense';
+import type { Expense } from '@/types/expense';
+import type { ExpenseItem } from '@/types/employee';
 
 export default function ExpensesPage() {
   const [activeTab, setActiveTab] = useState('expenses');
@@ -24,40 +23,49 @@ export default function ExpensesPage() {
   const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'dd/MM/yyyy');
   const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'dd/MM/yyyy');
 
-  // Load from localStorage
+  const loadExpenses = async () => {
+    const data = await getAllExpenses();
+    setExpenses(data);
+  };
+
   useEffect(() => {
-    const raw = localStorage.getItem(LOCAL_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        setExpenses(parsed);
-      } catch (e) {
-        console.error('Invalid expenses data in localStorage');
-      }
-    }
+    loadExpenses();
   }, []);
 
-  // Save to localStorage when expenses change
-  useEffect(() => {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify(expenses));
-  }, [expenses]);
+  const addExpense = async (data: { title: string; date: string; employees: ExpenseItem[] }) => {
+    const total = data.employees.reduce((sum, e) => sum + e.amount, 0);
+    const expense = await createExpense({
+      title: data.title,
+      date: data.date,
+      totalAmount: total,
+      totalReceived: 0,
+    });
 
-  const addExpense = (data: Omit<Expense, 'id' | 'isCollected'>) => {
-    const newExpense: Expense = {
-      ...data,
-      id: uuidv4(),
-      isCollected: false,
-    };
-    setExpenses(prev => [newExpense, ...prev]);
+    await Promise.all(
+      data.employees.map(emp =>
+        createExpenseTransaction({
+          expenseId: expense._id,
+          employeeId: emp.id,
+          amount: emp.amount,
+          note: emp.note,
+          receivedAmount: 0,
+          status: 'unpaid',
+        })
+      )
+    );
+
     setShowExpenseForm(false);
+    loadExpenses();
   };
 
-  const togglePaidStatus = (id: string) => {
-    setExpenses(prev => prev.map(e => e.id === id ? { ...e, isCollected: !e.isCollected } : e));
+  const togglePaidStatus = async (id: string) => {
+    await toggleExpenseCollected(id);
+    loadExpenses();
   };
 
-  const removeExpense = (id: string) => {
-    setExpenses(prev => prev.filter(e => e.id !== id));
+  const removeExpense = async (id: string) => {
+    await deleteExpense(id);
+    loadExpenses();
   };
 
   return (
@@ -108,18 +116,13 @@ export default function ExpensesPage() {
                 </CardHeader>
                 <CardContent>
                   <ExpenseForm
-                    employees={mockEmployees}
                     onSubmit={addExpense}
                     onCancel={() => setShowExpenseForm(false)}
                   />
                 </CardContent>
               </Card>
             ) : (
-              <ExpenseList
-                data={expenses}
-                onTogglePaid={togglePaidStatus}
-                onRemove={removeExpense}
-              />
+              <ExpenseList />
             )}
           </TabsContent>
 

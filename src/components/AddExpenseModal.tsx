@@ -9,17 +9,17 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Employee, Expense } from '../app/data/mockData';
+import type {  Expense } from '../app/data/mockData';
 import { cn } from '@/lib/utils';
+import type { Employee } from '@/types/employee';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  employees: Employee[];
   onSave: (expense: Omit<Expense, 'id' | 'isCollected'>) => void;
 }
 
-export default function AddExpenseModal({ open, onClose, employees, onSave }: Props) {
+export default function AddExpenseModal({ open, onClose, onSave }: Props) {
   const [date, setDate] = useState<Date>(new Date());
   const [selection, setSelection] = useState<Record<string, number>>({});
   const [description, setDescription] = useState('');

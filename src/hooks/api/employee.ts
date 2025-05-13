@@ -1,12 +1,17 @@
 // src/hooks/api/employee.ts
 import axios from 'axios'
-import type { Employee } from '@/types/employee'
+import type { Employee } from '@/types/employee';
 
 const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/employee`
 
 export async function getEmployees(): Promise<Employee[]> {
-  const res = await axios.get<Employee[]>(API_BASE)
-  return res.data
+  const res = await axios.get(API_BASE);
+  return res.data.map((e: any) => ({
+    id: e._id,
+    name: e.name,
+    alias: e.alias,
+    gender: e.gender,
+  }));
 }
 
 export async function getEmployeeById(id: string): Promise<Employee> {
@@ -30,3 +35,5 @@ export async function updateEmployee(id: string, payload: Partial<Employee>): Pr
 export async function deleteEmployee(id: string): Promise<void> {
   await axios.delete(`${API_BASE}/${id}`)
 }
+
+

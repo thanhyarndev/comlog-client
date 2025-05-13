@@ -11,7 +11,6 @@ import ExpenseForm from '@/components/ExpensesForm';
 import ExpenseList from '@/components/ExpenseList';
 import EmployeesPage from './employees/page';
 import type { Expense } from './data/mockData';
-import { employees as mockEmployees } from './data/mockData';
 
 const LOCAL_KEY = 'expenses_data';
 
@@ -106,18 +105,13 @@ export default function MainPage() {
                 </CardHeader>
                 <CardContent>
                   <ExpenseForm
-                    employees={mockEmployees}
                     onSubmit={addExpense}
                     onCancel={() => setShowExpenseForm(false)}
                   />
                 </CardContent>
               </Card>
             ) : (
-              <ExpenseList
-                data={expenses}
-                onTogglePaid={togglePaidStatus}
-                onRemove={removeExpense}
-              />
+              <ExpenseList/>
             )}
           </TabsContent>
 
