@@ -80,7 +80,7 @@ export default function MainPage() {
           )}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-3 mb-6">
             <TabsTrigger value="expenses">
               <DollarSign className="mr-2 h-4 w-4" />
@@ -122,7 +122,7 @@ export default function MainPage() {
           <TabsContent value="employees">
             <EmployeesPage />
           </TabsContent>
-        </Tabs>
+        </Tabs> */}
       </div>
     </div>
   );

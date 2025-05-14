@@ -20,8 +20,8 @@ export async function deleteExpense(id: string): Promise<void> {
 export async function createExpense(payload: {
   title: string;
   date: string;
-  totalAmount: number;
   totalReceived?: number;
+  notes?: string;
 }): Promise<Expense> {
   const res = await axios.post(BASE_URL, payload);
   return res.data;

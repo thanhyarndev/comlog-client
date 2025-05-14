@@ -16,7 +16,7 @@ import { createExpense, createExpenseTransaction } from '@/hooks/api/expense';
 
 
 interface Props {
-  onSubmit: (expense: { title: string; date: string; employees: ExpenseItem[] }) => void;
+  onSubmit: (expense: { title: string; date: string; employees: ExpenseItem[]; notes?: string }) => void;
   onCancel: () => void;
 }
 
@@ -29,6 +29,7 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [defaultAmount, setDefaultAmount] = useState<number>(10000);
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     getEmployees().then(setEmployees).finally(() => setLoading(false));
@@ -76,15 +77,12 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
     };
   });
 
-  const totalAmount = employeesSelected.reduce((sum, emp) => sum + emp.amount, 0);
-
   try {
-    // 1. Tạo expense
+    // 1. Tạo expense (bỏ totalAmount, totalReceived)
     const expense = await createExpense({
       title,
       date: format(date, 'yyyy-MM-dd'),
-      totalAmount,
-      totalReceived: 0,
+      notes, // thêm ghi chú chung vào đây
     });
 
     // 2. Tạo các transaction
@@ -113,6 +111,7 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
   }
 };
 
+
   const total = Object.values(selection).reduce((a, b) => a + b.amount, 0);
   const filteredEmployees = employees.filter(emp => emp.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -130,6 +129,16 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
         />
         {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
       </div>
+
+      <div className="space-y-2">
+  <Label htmlFor="notes">Ghi chú chung</Label>
+  <Textarea
+    id="notes"
+    placeholder="Ghi chú thêm cho phiếu chi này..."
+    value={notes}
+    onChange={e => setNotes(e.target.value)}
+  />
+</div>
 
       <div className="space-y-2">
         <Label htmlFor="default">Số tiền mặc định khi chọn nhân viên</Label>

@@ -61,43 +61,61 @@ export default function ExpenseList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {expenses.map((expense) => (
-            <TableRow key={expense._id}>
-              <TableCell>{format(new Date(expense.date), 'dd/MM/yyyy')}</TableCell>
-              <TableCell>{expense.title}</TableCell>
-              <TableCell>{expense.totalAmount.toLocaleString()} ₫</TableCell>
-              <TableCell>
-                <Badge variant={expense.totalReceived >= expense.totalAmount ? 'default' : 'outline'}>
-                  {expense.totalReceived >= expense.totalAmount ? 'Đã thu đủ' : 'Chưa thu đủ'}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleTogglePaid(expense._id)}
-                    title="Chuyển trạng thái đã/ chưa thu đủ"
-                  >
-                    {expense.totalReceived >= expense.totalAmount ? (
-                      <X className="h-4 w-4" />
-                    ) : (
-                      <Check className="h-4 w-4" />
+          {expenses.map((expense) => {
+            const { _id, title, date, totalAmount, totalReceived } = expense;
+            const isFullyPaid = totalReceived >= totalAmount;
+            const percentage = ((totalReceived / totalAmount) * 100).toFixed(0);
+
+            return (
+              <TableRow key={_id}>
+                <TableCell>{format(new Date(date), 'dd/MM/yyyy')}</TableCell>
+                <TableCell>{title}</TableCell>
+                <TableCell>{totalAmount.toLocaleString()} ₫</TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant={isFullyPaid ? 'default' : 'outline'}>
+                      {`Đã thu: ${totalReceived.toLocaleString()} ₫ / ${totalAmount.toLocaleString()} ₫`}
+                    </Badge>
+                    {!isFullyPaid && (
+                      <span className="text-xs text-yellow-600 font-medium">
+                        ⚠ Chưa thu đủ ({percentage}%)
+                      </span>
                     )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleRemove(expense._id)}
-                    className="text-red-500"
-                    title="Xoá"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                    {isFullyPaid && (
+                      <span className="text-xs text-green-600 font-medium">
+                        ✓ Đã thu đủ
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleTogglePaid(_id)}
+                      title="Chuyển trạng thái đã/ chưa thu đủ"
+                    >
+                      {isFullyPaid ? (
+                        <X className="h-4 w-4" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleRemove(_id)}
+                      className="text-red-500"
+                      title="Xoá"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
           {!loading && expenses.length === 0 && (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">

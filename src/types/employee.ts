@@ -1,4 +1,5 @@
 export interface Employee {
+  _id: string;
   id: string; // standardized key (from _id)
   name: string;
   alias?: string;
