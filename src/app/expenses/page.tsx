@@ -1,3 +1,5 @@
+// ✅ Fixed: Double create issue + total shows 0 initially
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -48,9 +50,9 @@ export default function ExpensesPage() {
   };
 
   const loadAllTransactions = async () => {
-  const txs = await getExpenseTransactionsByFilter();
-  setAllTransactions(txs);
-};
+    const txs = await getExpenseTransactionsByFilter();
+    setAllTransactions(txs);
+  };
 
   const loadTransactions = async (expenseId: string) => {
     const data = await getExpenseTransactionsByFilter({ expenseId });
@@ -65,50 +67,27 @@ export default function ExpensesPage() {
     loadAllTransactions();
   }, []);
 
-  const addExpense = async (data: {
+  const handleFormSubmit = async (data: {
     title: string;
     date: string;
     notes?: string;
     employees: ExpenseItem[];
   }) => {
-    const total = data.employees.reduce((sum, e) => sum + e.amount, 0);
-    const expense = await createExpense({
-      title: data.title,
-      date: data.date,
-      totalReceived: 0,
-      notes: data.notes,
-    });
-
-    await Promise.all(
-      data.employees.map(emp =>
-        createExpenseTransaction({
-          expenseId: expense._id,
-          employeeId: emp.id,
-          amount: emp.amount,
-          note: emp.note,
-          receivedAmount: 0,
-          status: 'unpaid',
-        })
-      )
-    );
-
     setShowExpenseForm(false);
-    loadExpenses();
+    await loadExpenses();
+    await loadAllTransactions();
   };
-  
+
   const handleToggleTransactionStatus = async (tx: ExpenseTransaction) => {
-  const isPaid = tx.status === 'paid';
-  await updateExpenseTransaction(tx._id, {
-    receivedAmount: isPaid ? 0 : tx.amount,
-    status: isPaid ? 'unpaid' : 'paid',
-  });
-
-  // Cập nhật lại cả 2
-  if (selectedExpenseId) await loadTransactions(selectedExpenseId);
-  await loadExpenses();
-  await loadAllTransactions(); // 🆕 thêm dòng này
-};
-
+    const isPaid = tx.status === 'paid';
+    await updateExpenseTransaction(tx._id, {
+      receivedAmount: isPaid ? 0 : tx.amount,
+      status: isPaid ? 'unpaid' : 'paid',
+    });
+    if (selectedExpenseId) await loadTransactions(selectedExpenseId);
+    await loadExpenses();
+    await loadAllTransactions();
+  };
 
   const getEmployeeName = (id: string) => {
     const emp = employees.find(e => e.id === id);
@@ -142,7 +121,7 @@ export default function ExpensesPage() {
             <CardDescription>Nhập thông tin chi phí ăn trưa của nhân viên</CardDescription>
           </CardHeader>
           <CardContent>
-            <ExpenseForm onSubmit={addExpense} onCancel={() => setShowExpenseForm(false)} />
+            <ExpenseForm onSubmit={handleFormSubmit} onCancel={() => setShowExpenseForm(false)} />
           </CardContent>
         </Card>
       )}
@@ -170,17 +149,11 @@ export default function ExpensesPage() {
                   <td className="px-4 py-2">{e.title}</td>
                   <td className="px-4 py-2">{e.notes || '-'}</td>
                   <td className="px-4 py-2 text-right">
-  {allTransactions
-    .filter(tx => tx.expenseId === e._id)
-    .reduce((sum, tx) => sum + tx.amount, 0)
-    .toLocaleString()} ₫
-</td>
-<td className="px-4 py-2 text-right">
-  {allTransactions
-    .filter(tx => tx.expenseId === e._id)
-    .reduce((sum, tx) => sum + tx.receivedAmount, 0)
-    .toLocaleString()} ₫
-</td>
+                    {allTransactions.filter(tx => tx.expenseId === e._id).reduce((sum, tx) => sum + tx.amount, 0).toLocaleString()} ₫
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {allTransactions.filter(tx => tx.expenseId === e._id).reduce((sum, tx) => sum + tx.receivedAmount, 0).toLocaleString()} ₫
+                  </td>
                   <td className="px-4 py-2 text-center">
                     <Button variant="outline" size="sm" onClick={() => loadTransactions(e._id)}>
                       Xem

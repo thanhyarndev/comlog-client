@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 
 const tabs = [
   { label: 'Expenses', path: '/expenses' },
-  { label: 'Weekly Summary', path: '/weekly-summary' },
+  { label: 'Weekly Summary', path: '/summary' },
   { label: 'Employees', path: '/employees' },
 ];
 
