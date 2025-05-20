@@ -39,3 +39,13 @@ export async function createExpenseTransaction(payload: {
   const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/expense-transactions`, payload);
   return res.data;
 }
+
+export async function getExpensesByDateRange(
+  startDate: string,
+  endDate: string
+): Promise<Expense[]> {
+  const res = await axios.get(`${BASE_URL}/range`, {
+    params: { startDate, endDate },
+  });
+  return res.data;
+}

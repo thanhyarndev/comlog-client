@@ -38,3 +38,13 @@ export async function getExpenseTransactionsByExpense(expenseId: string): Promis
   return res.data;
 }
 
+export async function getTransactionsByExpenseIds(
+  expenseIds: string[]
+): Promise<ExpenseTransaction[]> {
+  const res = await axios.get(`${BASE_URL}`, {
+    params: { expenseIds },
+    paramsSerializer: { indexes: null }, // serialize as ?expenseIds[]=...&expenseIds[]=...
+  });
+  return res.data;
+}
+
