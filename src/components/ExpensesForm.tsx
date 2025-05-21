@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import type { Employee, ExpenseItem } from "@/types/employee";
 import { getEmployees } from "@/hooks/api/employee";
 import { createExpense, createExpenseTransaction } from "@/hooks/api/expense";
+import { createTag, getAllTags } from "@/hooks/api/tag";
+import TagSelector from "./TagSelector";
 
 interface Props {
   onSubmit: (expense: {
@@ -40,12 +42,32 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
   const [search, setSearch] = useState("");
   const [defaultAmount, setDefaultAmount] = useState<number>(10000);
   const [notes, setNotes] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
 
   useEffect(() => {
     getEmployees()
       .then(setEmployees)
       .finally(() => setLoading(false));
+    fetchTags();
   }, []);
+
+  const fetchTags = async () => {
+    const res = await getAllTags();
+    setTags(res.map((tag: { name: any }) => tag.name));
+  };
+
+  const handleAddTag = async () => {
+    if (!newTag.trim()) return;
+    const tag = await createTag({ name: newTag.trim() });
+    const name = tag.name;
+    const updatedTags = [...selectedTags, name];
+    setTags((prev) => [...prev, name]);
+    setSelectedTags(updatedTags);
+    setTitle(updatedTags.join(", "));
+    setNewTag("");
+  };
 
   const toggleEmployee = (id: string) => {
     setSelection((prev) => {
@@ -191,6 +213,14 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
           />
         </div>
       </div>
+
+      <TagSelector
+        selectedTags={selectedTags}
+        onChange={(updated) => {
+          setSelectedTags(updated);
+          setTitle(updated.join(", "));
+        }}
+      />
 
       <div className="space-y-2">
         <Label htmlFor="notes">Ghi chú chung</Label>

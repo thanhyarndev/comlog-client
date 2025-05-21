@@ -1,5 +1,3 @@
-// ✅ Fixed: Double create issue + total shows 0 initially
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -39,6 +37,7 @@ import { getEmployees } from "@/hooks/api/employee";
 import type { Expense } from "@/types/expense";
 import type { ExpenseItem, Employee } from "@/types/employee";
 import type { ExpenseTransaction } from "@/types/transaction";
+import { useRouter } from "next/navigation";
 
 export default function ExpensesPage() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -54,6 +53,7 @@ export default function ExpensesPage() {
   );
 
   const now = new Date();
+  const router = useRouter();
   const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "dd/MM/yyyy");
   const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), "dd/MM/yyyy");
 
@@ -70,9 +70,6 @@ export default function ExpensesPage() {
     const data = await getExpensesByDateRange(from, to);
     setExpenses(data);
   };
-  
-
-  
 
   const loadEmployees = async () => {
     const data = await getEmployees();
@@ -236,13 +233,20 @@ export default function ExpensesPage() {
             Tuần sau →
           </Button>
         </div>
-        <Button
-          onClick={() => setShowExpenseForm(true)}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm chi phí
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowExpenseForm(true)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm chi phí
+          </Button>
+
+          <Button variant="outline" onClick={() => router.push("/session/new")}>
+            🍱 Tạo session chọn món
+          </Button>
+        </div>
       </div>
 
       <Dialog open={showExpenseForm} onOpenChange={setShowExpenseForm}>
