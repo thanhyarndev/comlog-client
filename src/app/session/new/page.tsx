@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createExpense } from "@/hooks/api/expense";
+import { createExpense, createSessionWithExpense } from "@/hooks/api/expense";
 import {
   getFoodItems,
   createFoodItem,
@@ -80,19 +80,15 @@ export default function CreateSessionPage() {
 
     setLoading(true);
     try {
-      const expense = await createExpense({
+      const session = await createSessionWithExpense({
         title,
         date: format(date, "yyyy-MM-dd"),
-        notes: "Session tự động tạo",
-      });
-
-      const session = await createSession({
-        expenseId: expense._id,
         items: selectedItems,
+        tagIds: selectedTags, // ✅ gửi thêm tagIds
       });
 
       alert("Tạo session thành công!");
-      router.push(`/sessions/${session._id}`);
+      router.push(`/session/${session._id}`);
     } catch (err) {
       console.error(err);
       alert("Lỗi khi tạo session, vui lòng thử lại");
@@ -100,6 +96,8 @@ export default function CreateSessionPage() {
       setLoading(false);
     }
   };
+  
+  
 
   const handleAddFood = async () => {
     console.log("Adding food item:", newItem, newPrice, newType);
@@ -159,14 +157,6 @@ export default function CreateSessionPage() {
                 }}
               />
             </div>
-          </div>
-          <div>
-            <Label>Ngày</Label>
-            <Input
-              type="date"
-              value={date.toISOString().slice(0, 10)}
-              onChange={(e) => setDate(new Date(e.target.value))}
-            />
           </div>
 
           <div className="flex justify-between items-center">

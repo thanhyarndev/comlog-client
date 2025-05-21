@@ -32,13 +32,19 @@ export default function SessionDetailPage() {
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
+
 
   useEffect(() => {
     if (id) {
-      getSessionById(id as string).then(setSession);
+      getSessionById(id as string).then((s) => {
+        setSession(s);
+        if (!s.isActive) setSessionExpired(true);
+      });
       getEmployees().then(setEmployees);
       getFoodItems().then(setFoodItems);
     }
+    
   }, [id]);
 
   const toggleItem = (item: string) => {
@@ -113,6 +119,20 @@ export default function SessionDetailPage() {
   const sideDishes = session?.items.filter((item) =>
     foodItems.find((f) => f.name === item && f.type === "side")
   );
+
+  if (sessionExpired) {
+    return (
+      <div className="max-w-2xl mx-auto py-10 px-4 text-center">
+        <h1 className="text-2xl font-bold text-red-600">
+          Phiên đặt cơm đã kết thúc
+        </h1>
+        <p className="mt-4 text-gray-600">
+          Session này không còn hoạt động nữa. Vui lòng liên hệ quản trị viên
+          nếu cần mở lại.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">

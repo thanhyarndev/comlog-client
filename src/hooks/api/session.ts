@@ -37,10 +37,14 @@ export async function getSessionById(id: string): Promise<Session> {
 }
 
 // Tắt session
-export async function deactivateSession(id: string): Promise<Session> {
-  const res = await axios.put(`${BASE_URL}/${id}/deactivate`);
+export async function deactivateSession(
+  id: string,
+  isActive: boolean
+): Promise<Session> {
+  const res = await axios.put(`${BASE_URL}/${id}/deactivate`, { isActive });
   return res.data;
 }
+
 
 // Cập nhật danh sách món ăn
 export async function updateSessionItems(
@@ -50,3 +54,4 @@ export async function updateSessionItems(
   const res = await axios.put(`${BASE_URL}/${id}/items`, { items });
   return res.data;
 }
+

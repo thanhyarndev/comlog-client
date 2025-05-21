@@ -1,5 +1,5 @@
-import axios from 'axios';
-import type { Expense } from '@/types/expense';
+import axios from "axios";
+import type { Expense } from "@/types/expense";
 
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/expenses`;
 
@@ -34,9 +34,12 @@ export async function createExpenseTransaction(payload: {
   amount: number;
   note?: string;
   receivedAmount?: number;
-  status?: 'unpaid' | 'partial' | 'paid';
+  status?: "unpaid" | "partial" | "paid";
 }): Promise<any> {
-  const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/expense-transactions`, payload);
+  const res = await axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/expense-transactions`,
+    payload
+  );
   return res.data;
 }
 
@@ -47,5 +50,18 @@ export async function getExpensesByDateRange(
   const res = await axios.get(`${BASE_URL}/range`, {
     params: { startDate, endDate },
   });
+  return res.data;
+}
+
+export async function createSessionWithExpense(data: {
+  title: string;
+  date: string;
+  items: string[];
+  tagIds?: string[];
+}) {
+  const res = await axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/sessions/with-expense`,
+    data
+  );
   return res.data;
 }

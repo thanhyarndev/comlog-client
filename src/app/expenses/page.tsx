@@ -38,6 +38,7 @@ import type { Expense } from "@/types/expense";
 import type { ExpenseItem, Employee } from "@/types/employee";
 import type { ExpenseTransaction } from "@/types/transaction";
 import { useRouter } from "next/navigation";
+import { deactivateSession, getSessionById } from "@/hooks/api/session";
 
 export default function ExpensesPage() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -63,6 +64,11 @@ export default function ExpensesPage() {
   );
   const [endDate, setEndDate] = useState(endOfWeek(now, { weekStartsOn: 1 }));
 
+  const [selectedSession, setSelectedSession] = useState<{
+    _id: string;
+    isActive: boolean;
+  } | null>(null);
+
   const loadExpenses = async () => {
     const from = format(startDate, "yyyy-MM-dd");
     const to = format(endDate, "yyyy-MM-dd");
@@ -70,6 +76,8 @@ export default function ExpensesPage() {
     const data = await getExpensesByDateRange(from, to);
     setExpenses(data);
   };
+
+  console.log("selectedSession: ", selectedSession);
 
   const loadEmployees = async () => {
     const data = await getEmployees();
@@ -84,15 +92,31 @@ export default function ExpensesPage() {
 
   const loadTransactions = async (expenseId: string) => {
     const data = await getExpenseTransactionsByFilter({ expenseId });
-    setTransactions(data.map((tx) => ({ ...tx }))); // clone để tránh đụng state gốc
+    setTransactions(data.map((tx) => ({ ...tx })));
     setSelectedExpenseId(expenseId);
     setShowModal(true);
+
+    // 🧠 Dùng hàm chuẩn thay vì fetch cứng
+    const expense = expenses.find((e) => e._id === expenseId);
+    if (expense?.isSessionBased && expense.sessionId) {
+      try {
+        const session = await getSessionById(expense.sessionId);
+        setSelectedSession(session);
+      } catch (err) {
+        console.error("Không thể tải session:", err);
+        setSelectedSession(null);
+      }
+    } else {
+      setSelectedSession(null);
+    }
   };
 
   useEffect(() => {
     const load = async () => {
       await loadEmployees();
-      await loadExpenses();
+      loadExpenses().then(() => {
+        console.log("🔍 Expenses:", expenses);
+      });
     };
     load();
   }, []);
@@ -283,38 +307,56 @@ export default function ExpensesPage() {
               </tr>
             </thead>
             <tbody>
-              {expenses.map((e) => (
-                <tr key={e._id} className="border-t">
-                  <td className="px-4 py-2">
-                    {format(new Date(e.date), "dd/MM/yyyy")}
-                  </td>
-                  <td className="px-4 py-2">{e.title}</td>
-                  <td className="px-4 py-2">{e.notes || "-"}</td>
-                  <td className="px-4 py-2 text-right">
-                    {allTransactions
-                      .filter((tx) => String(tx.expenseId) === String(e._id))
-                      .reduce((sum, tx) => sum + tx.amount, 0)
-                      .toLocaleString()}{" "}
-                    ₫
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    {allTransactions
-                      .filter((tx) => String(tx.expenseId) === String(e._id))
-                      .reduce((sum, tx) => sum + tx.receivedAmount, 0)
-                      .toLocaleString()}{" "}
-                    ₫
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => loadTransactions(e._id)}
-                    >
-                      Xem
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {expenses.map((e) => {
+                const relatedTx = allTransactions.filter(
+                  (tx) => String(tx.expenseId) === String(e._id)
+                );
+
+                const total = relatedTx.reduce((sum, tx) => sum + tx.amount, 0);
+                const received = relatedTx.reduce(
+                  (sum, tx) => sum + tx.receivedAmount,
+                  0
+                );
+
+                return (
+                  <tr key={e._id} className="border-t">
+                    <td className="px-4 py-2">
+                      {format(new Date(e.date), "dd/MM/yyyy")}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-col">
+                        <span>{e.title}</span>
+                        {e.isSessionBased && e.sessionId && (
+                          <a
+                            href={`/session/${e.sessionId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 text-sm hover:underline"
+                          >
+                            🔗 Xem session
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">{e.notes || "-"}</td>
+                    <td className="px-4 py-2 text-right">
+                      {total.toLocaleString()} ₫
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {received.toLocaleString()} ₫
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadTransactions(e._id)}
+                      >
+                        Xem
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </CardContent>
@@ -326,11 +368,37 @@ export default function ExpensesPage() {
             <DialogTitle>Chi tiết thanh toán</DialogTitle>
           </DialogHeader>
 
-          <div className="overflow-x-auto">
-            <table className="w-full table-auto border">
+          <div className="max-h-[400px] overflow-auto">
+            {selectedSession && (
+              <div className="flex items-center justify-between px-2 py-2 border rounded bg-gray-50 mb-3">
+                <div className="text-sm text-muted-foreground">
+                  Session này đang{" "}
+                  <span className="font-semibold text-black">
+                    {selectedSession.isActive ? "MỞ" : "ĐÃ ĐÓNG"}
+                  </span>
+                  . Bạn có thể khóa/mở lại để chặn nhân viên đặt món.
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">Mở</span>
+                  <Switch
+                    checked={selectedSession.isActive}
+                    onCheckedChange={async (checked) => {
+                      await deactivateSession(selectedSession._id, checked);
+                      setSelectedSession((prev) =>
+                        prev ? { ...prev, isActive: checked } : prev
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <table className="w-full table-auto border text-sm">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="px-4 py-2 text-left">Nhân viên</th>
+                  <th className="px-4 py-2 text-left">Nội dung</th>{" "}
+                  {/* ✅ NEW */}
                   <th className="px-4 py-2 text-right">Phải thu</th>
                   <th className="px-4 py-2 text-right">Đã thu</th>
                   <th className="px-4 py-2 text-center">Trạng thái</th>
@@ -375,7 +443,9 @@ export default function ExpensesPage() {
                           getEmployeeName(tx.employeeId)
                         )}
                       </td>
-
+                      <td className="px-4 py-2 text-sm text-gray-600 max-w-xs">
+                        {tx.note || "-"}
+                      </td>
                       <td className="px-4 py-2 text-right">
                         <input
                           type="number"
