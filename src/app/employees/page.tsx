@@ -14,11 +14,13 @@ import { Search, Plus, User } from "lucide-react";
 import { getEmployees } from "@/hooks/api/employee";
 import type { Employee } from "@/types/employee";
 import EmployeeModal from "@/components/EmployeeModal";
+import { getUserRole } from "@/hooks/api/employee";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [role, setRole] = useState<"guest" | "admin">("guest");
   const router = useRouter();
 
   const fetchEmployees = async () => {
@@ -29,9 +31,8 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     fetchEmployees();
+    getUserRole().then(setRole);
   }, []);
-
-  console.log("employees", employees);
 
   const filtered = employees.filter(
     (e) =>
@@ -48,12 +49,14 @@ export default function EmployeesPage() {
             Quản lý thông tin nhân viên: tên, giới tính, tên gọi khác
           </CardDescription>
         </div>
-        <Button
-          onClick={() => setShowModal(true)}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Thêm nhân viên
-        </Button>
+        {role === "admin" && (
+          <Button
+            onClick={() => setShowModal(true)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Thêm nhân viên
+          </Button>
+        )}
       </CardHeader>
 
       <CardContent>
@@ -101,11 +104,13 @@ export default function EmployeesPage() {
         </div>
       </CardContent>
 
-      <EmployeeModal
-        open={showModal}
-        onClose={() => setShowModal(false)}
-        onSuccess={fetchEmployees}
-      />
+      {role === "admin" && (
+        <EmployeeModal
+          open={showModal}
+          onClose={() => setShowModal(false)}
+          onSuccess={fetchEmployees}
+        />
+      )}
     </Card>
   );
 }
