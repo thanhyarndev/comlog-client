@@ -1,11 +1,11 @@
 export interface ExpenseTransaction {
   _id: string;
-  expenseId: string;
-  employeeId: string;
+  expenseId: { title: string; date: string } | string;
   amount: number;
+  employeeId: string;
   note?: string;
   receivedAmount: number;
-  status: 'unpaid' | 'partial' | 'paid';
+  status: "unpaid" | "partial" | "paid";
   createdAt?: string;
   updatedAt?: string;
 }

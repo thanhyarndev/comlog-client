@@ -183,7 +183,7 @@ export default function ExpensesPage() {
       } else {
         // Tạo giao dịch mới
         await createExpenseTransaction({
-          expenseId: tx.expenseId,
+          expenseId: typeof tx.expenseId === "string" ? tx.expenseId : "",
           employeeId: tx.employeeId,
           amount: tx.amount,
           receivedAmount: tx.status === "paid" ? tx.amount : 0,

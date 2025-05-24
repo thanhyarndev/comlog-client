@@ -70,6 +70,8 @@ export default function PaymentStatus({
     ? transactions.filter((t) => t.employeeId === selectedId)
     : [];
 
+  console.log("empTsx: ", empTxs);
+
   return (
     <>
       <Card>
@@ -106,7 +108,7 @@ export default function PaymentStatus({
                     onClick={() => setSelectedId(emp.id)}
                   >
                     <td className="px-4 py-3 text-sm">{emp.name}</td>
-                    <td className="px-4 py-3 text-sm text-right">
+                    <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
                       {emp.total.toLocaleString()} ₫
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
@@ -214,11 +216,18 @@ export default function PaymentStatus({
                     {empTxs.map((tx) => (
                       <tr key={tx._id}>
                         <td className="px-3 py-2 text-sm">
-                          {getExpenseTitle(tx.expenseId)}
+                          {/* Lấy trực tiếp title từ expenseId object */}
+                          {typeof tx.expenseId === "object"
+                            ? tx.expenseId.title
+                            : "-"}
                         </td>
                         <td className="px-3 py-2 text-sm">
+                          {/* Format lại ngày từ expenseId.date */}
                           {(() => {
-                            const dateStr = getExpenseDate(tx.expenseId);
+                            const dateStr =
+                              typeof tx.expenseId === "object"
+                                ? tx.expenseId.date
+                                : null;
                             if (!dateStr) return "-";
                             const d = new Date(dateStr);
                             return isNaN(d.getTime())

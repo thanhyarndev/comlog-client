@@ -28,6 +28,8 @@ import {
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import { getEmployeeById } from "@/hooks/api/employee";
+import type { Employee } from "@/types/employee";
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
@@ -37,11 +39,21 @@ export default function EmployeeSummaryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"week" | "all">("week");
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  const [employee, setEmployee] = useState<Employee | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    getExpenseTransactionsByFilter({ employeeId: id as string })
-      .then((data) => setTransactions(data))
+
+    setIsLoading(true);
+
+    Promise.all([
+      getEmployeeById(id as string),
+      getExpenseTransactionsByFilter({ employeeId: id as string }),
+    ])
+      .then(([emp, txs]) => {
+        setEmployee(emp);
+        setTransactions(txs);
+      })
       .finally(() => setIsLoading(false));
   }, [id]);
 
@@ -101,8 +113,14 @@ export default function EmployeeSummaryPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold">📊 Tổng quan chi tiêu cá nhân</h1>
-
+      <h1 className="text-3xl font-bold">
+        📊 Tổng quan chi tiêu cá nhân
+        {employee && (
+          <span className="ml-2 text-blue-600">
+            {employee.name} {employee.alias && `(${employee.alias})`}
+          </span>
+        )}
+      </h1>
       <div className="flex items-center justify-between gap-4 py-2">
         <div className="space-x-2">
           <button
@@ -176,6 +194,43 @@ export default function EmployeeSummaryPage() {
           </CardContent>
         </Card>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>📅 Danh sách giao dịch</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Ngày</TableHead>
+                <TableHead>Tiêu đề</TableHead>
+                <TableHead>Ghi chú</TableHead>
+                <TableHead className="text-right">Số tiền</TableHead>
+                <TableHead className="text-right">Đã trả</TableHead>
+                <TableHead>Trạng thái</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTransactions.map((tx) => (
+                <TableRow key={tx._id}>
+                  <TableCell>
+                    {new Date((tx.expenseId as any).date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{(tx.expenseId as any).title}</TableCell>
+                  <TableCell>{tx.note || "-"}</TableCell>
+                  <TableCell className="text-right">
+                    {tx.amount.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {tx.receivedAmount.toLocaleString()}đ
+                  </TableCell>
+                  <TableCell>{formatStatusBadge(tx.status)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
@@ -221,44 +276,6 @@ export default function EmployeeSummaryPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>📅 Danh sách giao dịch</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ngày</TableHead>
-                <TableHead>Tiêu đề</TableHead>
-                <TableHead>Ghi chú</TableHead>
-                <TableHead className="text-right">Số tiền</TableHead>
-                <TableHead className="text-right">Đã trả</TableHead>
-                <TableHead>Trạng thái</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTransactions.map((tx) => (
-                <TableRow key={tx._id}>
-                  <TableCell>
-                    {new Date((tx.expenseId as any).date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{(tx.expenseId as any).title}</TableCell>
-                  <TableCell>{tx.note || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {tx.amount.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {tx.receivedAmount.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell>{formatStatusBadge(tx.status)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }

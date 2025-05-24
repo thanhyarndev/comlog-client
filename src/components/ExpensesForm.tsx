@@ -179,28 +179,20 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
 
         <div className="space-y-2 md:col-span-3">
           <Label htmlFor="date">Ngày</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "dd/MM/yyyy") : <span>Chọn ngày</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(newDate) => newDate && setDate(newDate)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <Input
+            type="date"
+            id="date"
+            value={date ? format(date, "yyyy-MM-dd") : ""}
+            onChange={(e) => {
+              const newDate = e.target.value
+                ? new Date(e.target.value)
+                : new Date();
+              if (!isNaN(newDate.getTime())) {
+                setDate(newDate);
+              }
+            }}
+            className="w-full"
+          />
           {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
         </div>
 

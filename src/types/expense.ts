@@ -9,4 +9,5 @@ export interface Expense {
   notes?: string; 
   createdAt?: string;
   updatedAt?: string;
+  
 }
