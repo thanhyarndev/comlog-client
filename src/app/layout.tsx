@@ -1,5 +1,6 @@
 import "./globals.css";
 import TabNav from "@/components/TabNav";
+import { Toaster } from "react-hot-toast";
 
 export const metadata = {
   title: "Quản lí chi tiêu",
@@ -25,6 +26,13 @@ export default function RootLayout({
         </header>
         <TabNav />
         <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: { fontSize: "0.9rem" },
+          }}
+        />
       </body>
     </html>
   );

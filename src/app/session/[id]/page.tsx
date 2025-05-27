@@ -15,6 +15,7 @@ import type { FoodItem } from "@/types/foodItem";
 import type { Session } from "@/types/session";
 import type { Employee } from "@/types/employee";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 // Hàm bỏ dấu để so sánh
 const removeAccents = (str: string): string =>
@@ -89,10 +90,10 @@ export default function SessionDetailPage() {
           status: "unpaid",
         });
       }
-      alert("Ghi nhận thành công!");
+      toast.success("Đã ghi nhận món ăn thành công!");
     } catch (err) {
       console.error(err);
-      alert("Có lỗi xảy ra khi ghi nhận!");
+      toast.error("Có lỗi xảy ra khi ghi nhận món ăn. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }

@@ -24,6 +24,7 @@ import { createSession } from "@/hooks/api/session";
 import type { FoodItem } from "@/types/foodItem";
 import { getAllTags } from "@/hooks/api/tag";
 import TagSelector from "@/components/TagSelector";
+import toast from "react-hot-toast";
 
 const removeAccents = (str: string): string =>
   str
@@ -74,7 +75,7 @@ export default function CreateSessionPage() {
 
   const handleSubmit = async () => {
     if (!title || !date || selectedItems.length === 0) {
-      alert("Vui lòng nhập đủ thông tin và chọn ít nhất 1 món ăn");
+      toast.error("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
@@ -87,11 +88,11 @@ export default function CreateSessionPage() {
         tagIds: selectedTags, // ✅ gửi thêm tagIds
       });
 
-      alert("Tạo session thành công!");
+      toast.success("Tạo session thành công!");
       router.push(`/session/${session._id}`);
     } catch (err) {
       console.error(err);
-      alert("Lỗi khi tạo session, vui lòng thử lại");
+      toast.error("Có lỗi xảy ra khi tạo session. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

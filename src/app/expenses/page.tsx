@@ -27,6 +27,7 @@ import {
   getExpensesByDateRange,
   toggleExpenseCollected,
 } from "@/hooks/api/expense";
+import toast from "react-hot-toast";
 import {
   getExpenseTransactionsByFilter,
   updateExpenseTransaction,
@@ -203,7 +204,7 @@ export default function ExpensesPage() {
       await loadExpenses();
     } catch (error) {
       console.error("Lỗi khi lưu transaction:", error);
-      alert("Có lỗi xảy ra khi lưu giao dịch. Vui lòng thử lại.");
+      toast.error("Có lỗi xảy ra khi lưu giao dịch. Vui lòng thử lại.");
     }
   };
 

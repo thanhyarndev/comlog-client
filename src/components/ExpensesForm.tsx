@@ -19,6 +19,7 @@ import { getEmployees } from "@/hooks/api/employee";
 import { createExpense, createExpenseTransaction } from "@/hooks/api/expense";
 import { createTag, getAllTags } from "@/hooks/api/tag";
 import TagSelector from "./TagSelector";
+import toast from "react-hot-toast";
 
 interface Props {
   onSubmit: (expense: {
@@ -150,7 +151,7 @@ export default function ExpenseForm({ onSubmit, onCancel }: Props) {
       });
     } catch (err) {
       console.error("Lỗi khi tạo chi phí:", err);
-      alert("Có lỗi xảy ra khi lưu chi phí. Vui lòng thử lại.");
+      toast.error("Có lỗi xảy ra khi lưu chi phí. Vui lòng thử lại.");
     }
   };
 
