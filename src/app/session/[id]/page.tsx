@@ -1,3 +1,4 @@
+// src/app/session/[id]/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -14,9 +15,8 @@ import type { FoodItem } from "@/types/foodItem";
 import type { Session } from "@/types/session";
 import type { Employee } from "@/types/employee";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import EmployeeAutocomplete from "@/components/EmployeeCombobox";
 
+// Hàm bỏ dấu để so sánh
 const removeAccents = (str: string): string =>
   str
     .normalize("NFD")
@@ -28,24 +28,33 @@ export default function SessionDetailPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [employeeSearch, setEmployeeSearch] = useState<string>("");
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [employeeSearch, setEmployeeSearch] = useState("");
-  const [sessionExpired, setSessionExpired] = useState(false);
-
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [sessionExpired, setSessionExpired] = useState<boolean>(false);
 
   useEffect(() => {
-    if (id) {
-      getSessionById(id as string).then((s) => {
-        setSession(s);
-        if (!s.isActive) setSessionExpired(true);
-      });
-      getEmployees().then(setEmployees);
-      getFoodItems().then(setFoodItems);
-    }
-    
+    if (!id) return;
+    const sessionId = Array.isArray(id) ? id[0] : id;
+    getSessionById(sessionId).then((s) => {
+      setSession(s);
+      if (!s.isActive) setSessionExpired(true);
+    });
+    getEmployees().then(setEmployees);
+    getFoodItems().then(setFoodItems);
   }, [id]);
+
+  // Filter nhân viên theo search
+  const filteredEmployees = employees.filter((e) => {
+    const kw = removeAccents(employeeSearch.trim());
+    return (
+      removeAccents(e.name).includes(kw) ||
+      removeAccents(e.alias || "").includes(kw)
+    );
+  });
 
   const toggleItem = (item: string) => {
     setSelectedItems((prev) =>
@@ -54,12 +63,12 @@ export default function SessionDetailPage() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedEmployee || selectedItems.length === 0 || !session) return;
+    if (!session || !selectedEmployee || selectedItems.length === 0) return;
 
     const note = selectedItems.join(" + ");
-    const amount = selectedItems.reduce((total, item) => {
-      const found = foodItems.find((f) => f.name === item);
-      return total + (found?.price || 0);
+    const amount = selectedItems.reduce((sum, name) => {
+      const f = foodItems.find((fi) => fi.name === name);
+      return sum + (f?.price || 0);
     }, 0);
 
     setIsSubmitting(true);
@@ -68,12 +77,8 @@ export default function SessionDetailPage() {
         expenseId: session.expenseId,
         employeeId: selectedEmployee,
       });
-
       if (existing.length > 0) {
-        await updateExpenseTransaction(existing[0]._id, {
-          amount,
-          note,
-        });
+        await updateExpenseTransaction(existing[0]._id, { amount, note });
       } else {
         await createExpenseTransaction({
           expenseId: session.expenseId,
@@ -84,40 +89,32 @@ export default function SessionDetailPage() {
           status: "unpaid",
         });
       }
-
       alert("Ghi nhận thành công!");
-    } catch (error) {
+    } catch (err) {
+      console.error(err);
       alert("Có lỗi xảy ra khi ghi nhận!");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Dữ liệu hiển thị
   const selectedDetails = selectedItems
     .map((name) => {
-      const item = foodItems.find((f) => f.name === name);
-      return item ? `${item.name} (${item.price.toLocaleString()}₫)` : name;
+      const f = foodItems.find((fi) => fi.name === name);
+      return f ? `${f.name} (${f.price.toLocaleString()}₫)` : name;
     })
     .join(" + ");
-
   const total = selectedItems.reduce((sum, name) => {
-    const item = foodItems.find((f) => f.name === name);
-    return sum + (item?.price || 0);
+    const f = foodItems.find((fi) => fi.name === name);
+    return sum + (f?.price || 0);
   }, 0);
 
-  const filteredEmployees = employees.filter((e) => {
-    const keyword = removeAccents(employeeSearch);
-    return (
-      removeAccents(e.name).includes(keyword) ||
-      removeAccents(e.alias || "").includes(keyword)
-    );
-  });
-
   const mainDishes = session?.items.filter((item) =>
-    foodItems.find((f) => f.name === item && f.type === "main")
+    foodItems.some((f) => f.name === item && f.type === "main")
   );
   const sideDishes = session?.items.filter((item) =>
-    foodItems.find((f) => f.name === item && f.type === "side")
+    foodItems.some((f) => f.name === item && f.type === "side")
   );
 
   if (sessionExpired) {
@@ -138,92 +135,127 @@ export default function SessionDetailPage() {
     <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">
       <h1 className="text-2xl font-bold">Chọn Món Ăn</h1>
 
-      <div className="space-y-4">
-        <div>
-          <label className="font-medium block mb-1">Bạn là ai?</label>
-          {!selectedEmployee && (
-            <p className="text-sm text-red-500 mt-1">
-              Vui lòng chọn nhân viên.
-            </p>
-          )}
-          <EmployeeAutocomplete
-            employees={employees}
-            value={selectedEmployee}
-            onChange={setSelectedEmployee}
-          />
-        </div>
-
-        {session && (
-          <>
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Món chính</h2>
-              <div className="flex flex-wrap gap-2">
-                {mainDishes?.map((item) => {
-                  const isSelected = selectedItems.includes(item);
-                  return (
-                    <div
-                      key={item}
-                      onClick={() => toggleItem(item)}
-                      className={`cursor-pointer px-3 py-1.5 rounded-full border text-sm transition-all ${
-                        isSelected
-                          ? "bg-pink-100 border-pink-500 text-pink-800"
-                          : "bg-gray-100 border-gray-300 text-gray-700"
-                      }`}
-                    >
-                      {item}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Món phụ</h2>
-              <div className="flex flex-wrap gap-2">
-                {sideDishes?.map((item) => {
-                  const isSelected = selectedItems.includes(item);
-                  return (
-                    <div
-                      key={item}
-                      onClick={() => toggleItem(item)}
-                      className={`cursor-pointer px-3 py-1.5 rounded-full border text-sm transition-all ${
-                        isSelected
-                          ? "bg-pink-100 border-pink-500 text-pink-800"
-                          : "bg-gray-100 border-gray-300 text-gray-700"
-                      }`}
-                    >
-                      {item}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </>
+      {/* Phần chọn nhân viên */}
+      <div className="space-y-2 relative">
+        <label className="font-medium block mb-1">Bạn là ai?</label>
+        {!selectedEmployee && (
+          <p className="text-sm text-red-500">Vui lòng chọn nhân viên.</p>
         )}
+        <input
+          type="text"
+          className="w-full border rounded px-3 py-2 focus:outline-none"
+          placeholder="Nhập tên hoặc alias nhân viên..."
+          value={
+            selectedEmployee
+              ? employees.find((e) => e.id === selectedEmployee)?.name || ""
+              : employeeSearch
+          }
+          onChange={(e) => {
+            setEmployeeSearch(e.target.value);
+            setSelectedEmployee("");
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          onBlur={() => {
+            // Đợi một chút trước khi đóng để onClick chọn kịp chạy
+            setTimeout(() => setShowDropdown(false), 150);
+          }}
+        />
+        {showDropdown && (
+          <ul className="absolute z-10 w-full bg-white border mt-1 max-h-60 overflow-y-auto">
+            {filteredEmployees.map((e) => (
+              <li
+                key={e.id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setSelectedEmployee(e.id);
+                  setEmployeeSearch(e.name);
+                  setShowDropdown(false);
+                }}
+              >
+                <span className="font-medium">{e.name}</span>
+                {e.alias && (
+                  <span className="text-sm text-gray-500"> ({e.alias})</span>
+                )}
+              </li>
+            ))}
+            {filteredEmployees.length === 0 && (
+              <li className="px-4 py-2 text-gray-500">Không tìm thấy</li>
+            )}
+          </ul>
+        )}
+      </div>
 
-        {selectedItems.length > 0 && (
-          <div className="bg-gray-100 p-4 rounded space-y-2">
-            <div>
-              <strong>Nội dung:</strong> {selectedDetails}
-            </div>
-            <div>
-              <strong>Giá tham khảo:</strong> {total.toLocaleString()}₫
+      {/* Phần chọn món */}
+      {session && (
+        <>
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Món chính</h2>
+            <div className="flex flex-wrap gap-2">
+              {mainDishes?.map((item) => {
+                const sel = selectedItems.includes(item);
+                return (
+                  <div
+                    key={item}
+                    onClick={() => toggleItem(item)}
+                    className={`cursor-pointer px-3 py-1.5 rounded-full border text-sm transition-all ${
+                      sel
+                        ? "bg-pink-100 border-pink-500 text-pink-800"
+                        : "bg-gray-100 border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    {item}
+                  </div>
+                );
+              })}
             </div>
           </div>
-        )}
 
-        <Button
-          onClick={handleSubmit}
-          disabled={
-            !selectedEmployee?.trim() ||
-            selectedItems.length === 0 ||
-            isSubmitting
-          }
-          className="bg-green-600 hover:bg-green-700"
-        >
-          {isSubmitting ? "Đang lưu..." : "Xác nhận chọn món"}
-        </Button>
-      </div>
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Món phụ</h2>
+            <div className="flex flex-wrap gap-2">
+              {sideDishes?.map((item) => {
+                const sel = selectedItems.includes(item);
+                return (
+                  <div
+                    key={item}
+                    onClick={() => toggleItem(item)}
+                    className={`cursor-pointer px-3 py-1.5 rounded-full border text-sm transition-all ${
+                      sel
+                        ? "bg-pink-100 border-pink-500 text-pink-800"
+                        : "bg-gray-100 border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    {item}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Thông tin đã chọn */}
+      {selectedItems.length > 0 && (
+        <div className="bg-gray-100 p-4 rounded space-y-2">
+          <div>
+            <strong>Nội dung:</strong> {selectedDetails}
+          </div>
+          <div>
+            <strong>Giá tham khảo:</strong> {total.toLocaleString()}₫
+          </div>
+        </div>
+      )}
+
+      <Button
+        onClick={handleSubmit}
+        disabled={
+          !selectedEmployee || selectedItems.length === 0 || isSubmitting
+        }
+        className="bg-green-600 hover:bg-green-700"
+      >
+        {isSubmitting ? "Đang lưu..." : "Xác nhận chọn món"}
+      </Button>
     </div>
   );
 }

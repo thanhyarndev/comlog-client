@@ -118,7 +118,8 @@ export default function WeeklySummaryPage() {
 
   const expenseTotals = Object.entries(
     transactions.reduce((acc, tx) => {
-      acc[tx.expenseId] = (acc[tx.expenseId] || 0) + tx.amount;
+      const expenseId = typeof tx.expenseId === "string" ? tx.expenseId : String(tx.expenseId);
+      acc[expenseId] = (acc[expenseId] || 0) + tx.amount;
       return acc;
     }, {} as Record<string, number>)
   )
